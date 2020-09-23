@@ -37,7 +37,8 @@ public class MailChecker {
         MailChecker.bot = bot;
 
         // Читаем конфиг
-        FileInputStream fileInputStream = new FileInputStream("application.properties");
+        String prefix = System.getProperty("homedir") != null ? System.getProperty("homedir") : "";
+        FileInputStream fileInputStream = new FileInputStream(prefix + "application.properties");
         Properties properties = new Properties();
         properties.load(fileInputStream);
 
@@ -61,10 +62,11 @@ public class MailChecker {
         }
 
         // Заполняем паттерны
-        List<String> lines = Files.readAllLines(Paths.get("patterns"));
+        List<String> lines = Files.readAllLines(Paths.get(prefix + "patterns"));
         for (String line : lines) {
             patterns.add(Pattern.compile(line));
         }
+//        patterns.add(Pattern.compile("тест"));
 
     }
 
