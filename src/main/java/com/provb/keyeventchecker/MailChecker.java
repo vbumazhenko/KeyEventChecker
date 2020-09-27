@@ -2,6 +2,7 @@ package com.provb.keyeventchecker;
 
 import javax.mail.*;
 import javax.mail.internet.MimeUtility;
+import javax.mail.search.FlagTerm;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -50,7 +51,6 @@ public class MailChecker {
             if (host != null && user != null && password != null) {
                 checkers.add(new MailChecker(host, user, password));
             }
-
         }
 
         // Заполняем получателей уведомлений
@@ -66,7 +66,6 @@ public class MailChecker {
         for (String line : lines) {
             patterns.add(Pattern.compile(line));
         }
-//        patterns.add(Pattern.compile("тест"));
 
     }
 
@@ -98,7 +97,8 @@ public class MailChecker {
         }
 
         try {
-            Message[] messages = inbox.getMessages();
+            int count = inbox.getMessageCount();
+            Message[] messages = inbox.getMessages(count - 10, count);  // последние 10 сообщений
             Arrays.stream(messages)
                     // Берем только новые письма
                     .filter(m -> {

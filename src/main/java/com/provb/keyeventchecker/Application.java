@@ -20,7 +20,7 @@ public class Application {
         MailChecker.run(bot);
     }
 
-    @Scheduled(cron = "*/5 * * * * *") // Каждые 5 секунд
+    @Scheduled(cron = "*/30 * * * * *") // Каждые 30 секунд
     public static void check() {
         for (MailChecker checker : MailChecker.getCheckers()) {
             checker.check();
