@@ -1,8 +1,9 @@
 package com.provb.keyeventchecker;
 
+import org.jsoup.Jsoup;
+
 import javax.mail.*;
 import javax.mail.internet.MimeUtility;
-import javax.mail.search.FlagTerm;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -16,6 +17,7 @@ public class MailChecker {
     private static final List<Pattern> patterns = new ArrayList<>();
     private static final List<Long> users = new ArrayList<>();
     private static Bot bot;
+    private static final int maxLengthText = 4000;
 
     private final String host;
     private final String user;
@@ -31,6 +33,9 @@ public class MailChecker {
         this.password = password;
         ready = false;
         lastTime = System.currentTimeMillis();
+//        Calendar calendar = Calendar.getInstance();
+//        calendar.set(Calendar.YEAR, Calendar.MONTH, Calendar.DATE);
+//        lastTime = calendar.getTimeInMillis();
     }
 
     public static void run(Bot bot) throws IOException {
@@ -98,7 +103,7 @@ public class MailChecker {
 
         try {
             int count = inbox.getMessageCount();
-            Message[] messages = inbox.getMessages(count - 10, count);  // последние 10 сообщений
+            Message[] messages = inbox.getMessages(count - 5, count);  // последние 5 сообщений
             Arrays.stream(messages)
                     // Берем только новые письма
                     .filter(m -> {
@@ -125,14 +130,14 @@ public class MailChecker {
             lastTime = message.getReceivedDate().getTime();
 
             String from = message.getFrom()[0].toString();
-            String subject = "";
+            String subject = MimeUtility.decodeText(message.getSubject()) + "\n";
             String text = "";
 
             if (message.isMimeType("text/plain")) {
-                subject = MimeUtility.decodeText(message.getSubject()) + "\n";
                 text = message.getContent().toString();
+            } else if (message.isMimeType("text/html")) {
+                text = Jsoup.parse(message.getContent().toString()).wholeText();
             } else if (message.isMimeType("multipart/*")) {
-                subject = MimeUtility.decodeText(message.getSubject());
                 Multipart content = (Multipart) message.getContent();
                 BodyPart part = content.getBodyPart(0);
                 text = getTextFromPart(part);
@@ -148,9 +153,10 @@ public class MailChecker {
 
             if (isMatch) {
                 StringBuilder t = new StringBuilder();
-                t.append("От: ").append(from.substring(from.indexOf("<"))).append("\n")
+                t.append("От кого: ").append(from.substring(from.indexOf("<"))).append("\n")
+                        .append("Кому: ").append(getUser()).append("\n")
                         .append("Тема: ").append(subject).append("\n")
-                        .append(text);
+                        .append(simpleText(text));
                 for (Long chatid : users) {
                     bot.sendMessage(chatid, t.toString());
                 }
@@ -165,6 +171,8 @@ public class MailChecker {
 
         if (part.isMimeType("text/plain")) {
             return part.getContent().toString();
+        } else if (part.isMimeType("text/html")) {
+            return Jsoup.parse(part.getContent().toString()).wholeText();
         } else if (part.isMimeType("multipart/*")) {
             Multipart content = (Multipart) part.getContent();
             BodyPart thisPart = content.getBodyPart(0);
@@ -173,8 +181,27 @@ public class MailChecker {
         return "";
     }
 
+    public String getUser() {
+        return user;
+    }
+
+    public String simpleText(String text) {
+        text = text.trim();
+        for (;;) {
+            int length = text.length();
+            text = text
+                    .replace("\t", " ")
+                    .replace("  ", " ")
+                    .replace("\r\n\r\n", "\r\n")
+                    .replace("\r\n ", "\r\n");
+            if (length == text.length()) {
+                break;
+            }
+        }
+        return text.substring(0, Math.min(text.length(), 4000));
+    }
+
     public static List<MailChecker> getCheckers() {
         return checkers;
     }
-
 }
