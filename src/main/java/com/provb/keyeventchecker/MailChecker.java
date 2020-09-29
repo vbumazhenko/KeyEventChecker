@@ -198,7 +198,7 @@ public class MailChecker {
                 break;
             }
         }
-        return text.substring(0, Math.min(text.length(), 4000));
+        return text.substring(0, Math.min(text.length(), maxLengthText));
     }
 
     public static List<MailChecker> getCheckers() {
